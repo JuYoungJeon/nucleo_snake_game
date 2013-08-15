@@ -22,7 +22,7 @@
 
 // Constructor 
 Adafruit_ST7735::Adafruit_ST7735(PinName mosi, PinName miso, PinName sck, PinName cs, PinName rs, PinName rst) 
-        : lcdPort(mosi, miso, sck), _cs(cs), _rs(rs), _rst(rst)
+        : lcdPort(mosi, miso, sck), _cs(cs), _rs(rs), _rst(rst), Adafruit_GFX(ST7735_TFTWIDTH, ST7735_TFTHEIGHT) 
 { }
 
 
@@ -219,7 +219,6 @@ void Adafruit_ST7735::commandList(uint8_t *addr)
 void Adafruit_ST7735::commonInit(uint8_t *cmdList)
 {
 
-    constructor(ST7735_TFTWIDTH, ST7735_TFTHEIGHT);
     colstart  = rowstart = 0; // May be overridden in init func
 
     _rs = 1;
@@ -227,7 +226,7 @@ void Adafruit_ST7735::commonInit(uint8_t *cmdList)
 
     // use default SPI format
     lcdPort.format(8,0);
-    lcdPort.frequency(20000000);     // Lets try 8MHz
+    lcdPort.frequency(30000000);     // Lets try 30MHz
 
     // toggle RST low to reset; CS low so it'll listen to us
     _cs = 0;
