@@ -226,7 +226,7 @@ void Adafruit_ST7735::commonInit(uint8_t *cmdList)
 
     // use default SPI format
     lcdPort.format(8,0);
-    lcdPort.frequency(30000000);     // Lets try 30MHz
+    lcdPort.frequency(4000000);     // Lets try 4MHz
 
     // toggle RST low to reset; CS low so it'll listen to us
     _cs = 0;
