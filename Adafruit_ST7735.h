@@ -27,6 +27,7 @@
 // some flags for initR() :(
 #define INITR_GREENTAB 0x0
 #define INITR_REDTAB   0x1
+#define INITR_BLACKTAB   0x2
 
 #define ST7735_TFTWIDTH  128
 #define ST7735_TFTHEIGHT 160
@@ -79,12 +80,12 @@
 
 // Color definitions
 #define ST7735_BLACK   0x0000
-#define ST7735_BLUE    0x001F
-#define ST7735_RED     0xF800
+#define ST7735_RED     0x001F
+#define ST7735_BLUE    0xF800
 #define ST7735_GREEN   0x07E0
-#define ST7735_CYAN    0x07FF
+#define ST7735_YELLOW  0x07FF
 #define ST7735_MAGENTA 0xF81F
-#define ST7735_YELLOW  0xFFE0  
+#define ST7735_CYAN    0xFFE0  
 #define ST7735_WHITE   0xFFFF
 
 
@@ -98,15 +99,13 @@ class Adafruit_ST7735 : public Adafruit_GFX {
   void     initR(uint8_t options = INITR_GREENTAB); // for ST7735R
   void     setAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
   void     pushColor(uint16_t color);
-
-  void     fillScreen(uint16_t color);
-  void     drawPixel(int16_t x, int16_t y, uint16_t color);
-  void     drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
-  void     drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
-  void     fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-  void     invertDisplay(boolean i);
-
+  virtual void     fillScreen(uint16_t color);
+  virtual void     drawPixel(int16_t x, int16_t y, uint16_t color);
+  virtual void     drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+  virtual void     drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+  virtual void     fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
   void     setRotation(uint8_t r);
+  void     invertDisplay(boolean i);
   uint16_t Color565(uint8_t r, uint8_t g, uint8_t b);
 
  private:
