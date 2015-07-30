@@ -411,7 +411,7 @@ uint16_t Adafruit_ST7735::Color565(uint8_t r, uint8_t g, uint8_t b)
 #define MADCTL_MX  0x40
 #define MADCTL_MV  0x20
 #define MADCTL_ML  0x10
-#define MADCTL_RGB 0x08
+#define MADCTL_RGB 0x00
 #define MADCTL_MH  0x04
 
 void Adafruit_ST7735::setRotation(uint8_t m)
@@ -546,7 +546,7 @@ int Adafruit_ST7735::BMP_16(unsigned int x, unsigned int y, const char *Name_BMP
     return(1);
 }
 
-#define RGB(b,g,r)  (((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3)) //5 red | 6 green | 5 blue
+#define RGB(r,g,b)  (((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3)) //5 red | 6 green | 5 blue
 #define TFT_DEBUG
 
 int Adafruit_ST7735::DrawBitmapFile(const char *Name_BMP)
