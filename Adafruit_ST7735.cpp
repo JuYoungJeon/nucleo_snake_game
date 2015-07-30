@@ -18,13 +18,14 @@
 
 #include "mbed.h"
 #include "Adafruit_ST7735.h"
-
+#include <stdio.h>
 
 // Constructor 
 Adafruit_ST7735::Adafruit_ST7735(PinName mosi, PinName miso, PinName sck, PinName cs, PinName rs, PinName rst) 
         : lcdPort(mosi, miso, sck), _cs(cs), _rs(rs), _rst(rst), Adafruit_GFX(ST7735_TFTWIDTH, ST7735_TFTHEIGHT) 
 { }
 
+Serial pc(USBTX, USBRX);
 
 void Adafruit_ST7735::writecommand(uint8_t c)
 {
@@ -326,7 +327,7 @@ void Adafruit_ST7735::drawPixel(int16_t x, int16_t y, uint16_t color)
     _rs = 1;
     _cs = 0;
 
-    lcdPort.write( color >> 8 );
+//    lcdPort.write( color >> 8 );
     lcdPort.write( color );
 
     _cs = 1;
@@ -448,4 +449,230 @@ void Adafruit_ST7735::invertDisplay(boolean i)
     writecommand(i ? ST7735_INVON : ST7735_INVOFF);
 }
 
+
+int Adafruit_ST7735::BMP_16(unsigned int x, unsigned int y, const char *Name_BMP)
+{
+ 
+ 
+ 
+#define OffsetPixelWidth    18
+#define OffsetPixelHeigh    22
+#define OffsetFileSize      34
+#define OffsetPixData       10
+#define OffsetBPP           28
+    pc.printf("TEST START\r\n");
+    char filename[50];
+    unsigned char BMP_Header[54];
+    unsigned short BPP_t;
+    unsigned int PixelWidth,PixelHeigh,start_data;
+    unsigned int    i,off;
+    int padd,j;
+    unsigned short *line;
+ 
+    pc.printf("TEST START1\r\n");
+    // get the filename
+    i=0;
+    while (*Name_BMP!='\0') {
+        filename[i++]=*Name_BMP++;
+    }
+    pc.printf("TEST START2\r\n");
+    filename[i] = 0;  
+    
+    pc.printf("TEST START3\r\n");
+    FILE *Image = fopen((const char *)&filename[0], "rb");  // open the bmp file
+    pc.printf("TEST FILEOPEN\r\n");
+    if (!Image) {
+        pc.printf("TEST error file not found");
+        return(0);      // error file not found !
+    }
+ 
+    fread(&BMP_Header[0],1,54,Image);      // get the BMP Header
+ 
+    if (BMP_Header[0] != 0x42 || BMP_Header[1] != 0x4D) {  // check magic byte
+        pc.printf("TEST error no BMP file");
+        fclose(Image);
+        return(-1);     // error no BMP file
+    }
+ 
+    BPP_t = BMP_Header[OffsetBPP] + (BMP_Header[OffsetBPP + 1] << 8);
+    if (BPP_t != 0x0010) {
+        pc.printf("TEST error no 16 bit BMP\r\n");
+        fclose(Image);
+        return(-2);     // error no 16 bit BMP
+    }
+ 
+    PixelHeigh = BMP_Header[OffsetPixelHeigh] + (BMP_Header[OffsetPixelHeigh + 1] << 8) + (BMP_Header[OffsetPixelHeigh + 2] << 16) + (BMP_Header[OffsetPixelHeigh + 3] << 24);
+    PixelWidth = BMP_Header[OffsetPixelWidth] + (BMP_Header[OffsetPixelWidth + 1] << 8) + (BMP_Header[OffsetPixelWidth + 2] << 16) + (BMP_Header[OffsetPixelWidth + 3] << 24);
+    if (PixelHeigh > _height + y || PixelWidth > _width + x) {
+        pc.printf("TEST to big\r\n");
+        fclose(Image);
+        return(-3);      // to big
+    }
+ 
+    start_data = BMP_Header[OffsetPixData] + (BMP_Header[OffsetPixData + 1] << 8) + (BMP_Header[OffsetPixData + 2] << 16) + (BMP_Header[OffsetPixData + 3] << 24);
+ 
+    line = (unsigned short *) malloc (2 * PixelHeigh); // we need a buffer for a line
+    if (line == NULL) {
+        pc.printf("TEST error no memory\r\n");
+        return(-4);         // error no memory
+    }
+    pc.printf("TEST 506");
+    // the bmp lines are padded to multiple of 4 bytes
+    padd = -1;
+    do {pc.printf("TEST padd : %d\r\n",padd);
+        padd ++;
+    } while ((PixelHeigh * 2 + padd)%4 != 0);
+ 
+    setAddrWindow(x, y,PixelWidth ,PixelHeigh);
+    writecommand(0x2C);  // send pixel
+    
+    pc.printf("TEST 518");
+    for (j = PixelWidth - 1; j >= 0; j--) {               //Lines bottom up
+        off = j * (PixelHeigh  * 2 + padd) + start_data;   // start of line
+        fseek(Image, off ,SEEK_SET);
+        fread(line,1,PixelHeigh * 2,Image);       // read a line - slow 
+        for (i = 0; i < PixelHeigh; i++) {        // copy pixel data to TFT
+            _rs = 1;
+            _cs = 0;
+            lcdPort.write(line[i]);
+        }
+     }
+    _cs = 1;
+    lcdPort.format(8,3);
+    free (line);
+    fclose(Image);
+    setAddrWindow(0,0,_width,_height);
+    pc.printf("TEST END");
+    return(1);
+}
+
+#define RGB(b,g,r)  (((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3)) //5 red | 6 green | 5 blue
+#define TFT_DEBUG
+
+int Adafruit_ST7735::DrawBitmapFile(const char *Name_BMP)
+{
+   
+    char img[3*240];
+    uint32_t imgsize = 0;
+    uint32_t offset = 0;
+    uint32_t imgw = 0;
+    uint32_t imgh = 0;
+    char colbits = 0;
+    char compress = 0;
+    uint16_t col;
+
+    int i, j;
+    
+    char filename[50];
+    
+    pc.printf("TEST START1\r\n");
+    // get the filename
+    i=0;
+    while (*Name_BMP!='\0') {
+        filename[i++]=*Name_BMP++;
+    }
+    pc.printf("TEST START2\r\n");
+    filename[i] = 0;  
+    
+    pc.printf("TEST START3\r\n");
+    FILE *Image = fopen((const char *)&filename[0], "rb");  // open the bmp file
+    pc.printf("TEST FILEOPEN\r\n");
+
+    if(Image == NULL) return -1;
+    if(fgetc(Image) != 0x42) return -2;
+    if(fgetc(Image) != 0x4D) return -2;
+
+    for(i = 0; i < 4; i++)
+    {
+        imgsize += (((uint32_t)fgetc(Image)) << i*8);
+    }
+#ifdef TFT_DEBUG
+    pc.printf("BMP SIZE:%d\r\n",imgsize);
+#endif
+    fseek(Image,4,SEEK_CUR);
+    for(i = 0; i < 4; i++)
+    {
+        offset += (((uint32_t)fgetc(Image)) << i*8);
+    }
+#ifdef TFT_DEBUG    
+    pc.printf("BMP OFFSET:%d\r\n",offset);
+#endif
+    fseek(Image,4,SEEK_CUR);
+    for(i = 0; i < 4; i++)
+    {
+        imgw += (((uint32_t)fgetc(Image)) << i*8);
+    }
+    if(imgw > 240) return -3;
+    
+    for(i = 0; i < 4; i++)
+    {
+        imgh += (((uint32_t)fgetc(Image)) << i*8);
+    }
+    if(imgh > 320) return -3;
+    
+    fseek(Image,2,SEEK_CUR);
+    colbits = fgetc(Image);
+    //if(colbits != 16 || colbits != 24) return -4;
+    fgetc(Image);
+    if((compress=fgetc(Image)) != 0)
+    {
+    #ifdef TFT_DEBUG    
+        pc.printf("Not supported compress : %d\r\n",compress);
+    #endif
+        return -4;    
+    }
+    
+
+#ifdef TFT_DEBUG    
+    pc.printf("RESOL : %d col, %d X %d",colbits,imgw,imgh);
+#endif    
+    
+    fseek(Image, offset, SEEK_SET);
+    for (j = imgh; j >= 0; j--)        //Lines
+    {  
+        fread(img,sizeof(char),imgw*3,Image);
+        _cs = 1;
+        setAddrWindow(0, j, imgw ,1);
+        writecommand(0x2C);  // send pixel
+        #ifdef TARGET_WIZWIKI_W7500
+        lcdPort.format(16,3);
+        #endif
+
+        for(i = 0; i < imgw; i++)
+        {
+/*            if(colbits == 16)
+            {
+                col = (uint16_t)img[2*i+1];
+                col <<= 8;
+                col += (uint16_t)img[2*i];
+            }
+            else if(colbits == 24) */
+            //{
+                col = RGB((uint16_t)img[3*i+2],(uint16_t)img[3*i+1], (uint16_t)img[3*i]);
+            //}
+        #ifdef TFT_DEBUG    
+        /*
+        
+           pc.printf("RGB(%d): ",i);
+           pc.printf("(%d,",img[3*i+2]);
+           pc.printf("%d,", img[3*i+1]);
+           pc.printf("%d),->", img[3*i]);
+           pc.printf("%04x\r\n",col);
+        */
+           //pc.printf("RGB(%d): (%d,%d,%d) -> %04X\r\n ",i,img[3*i+2],img[3*i+1],img[3*i],col);
+        #endif    
+            _rs = 1;
+            _cs = 0;
+
+            lcdPort.write(col);
+        }
+        _cs = 1;
+        #ifdef TARGET_WIZWIKI_W7500
+        lcdPort.format(8,3);
+        #endif
+    }
+    setAddrWindow(0,0,_width,_height);
+    
+    return 0;
+}
 

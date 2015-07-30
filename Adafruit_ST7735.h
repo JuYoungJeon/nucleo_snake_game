@@ -80,12 +80,12 @@
 
 // Color definitions
 #define ST7735_BLACK   0x0000
-#define ST7735_RED     0x001F
-#define ST7735_BLUE    0xF800
+#define ST7735_BLUE    0x001F
+#define ST7735_RED     0xF800
 #define ST7735_GREEN   0x07E0
-#define ST7735_YELLOW  0x07FF
+#define ST7735_CYAN    0x07FF
 #define ST7735_MAGENTA 0xF81F
-#define ST7735_CYAN    0xFFE0  
+#define ST7735_YELLOW  0xFFE0  
 #define ST7735_WHITE   0xFFFF
 
 
@@ -107,7 +107,9 @@ class Adafruit_ST7735 : public Adafruit_GFX {
   void     setRotation(uint8_t r);
   void     invertDisplay(boolean i);
   uint16_t Color565(uint8_t r, uint8_t g, uint8_t b);
-
+  int BMP_16(unsigned int x, unsigned int y, const char *Name_BMP);
+  int DrawBitmapFile(const char *Name_BMP);
+  
  private:
 
   void     spiwrite(uint8_t),
@@ -115,6 +117,7 @@ class Adafruit_ST7735 : public Adafruit_GFX {
            writedata(uint8_t d),
            commandList(uint8_t *addr),
            commonInit(uint8_t *cmdList);
+           
 
   uint8_t  colstart, rowstart; // some displays need this changed
 
