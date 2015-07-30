@@ -114,7 +114,7 @@ Bcmd[] = {                  // Initialization commands for 7735B screens
 },                  //     255 = 500 ms delay
 
 Rcmd1[] = {                 // Init for 7735R, part 1 (red or green tab)
-    15,                       // 15 commands in list:
+    15,                       // 16 commands in list:
     ST7735_SWRESET,   DELAY,  //  1: Software reset, 0 args, w/delay
     150,                    //     150 ms delay
     ST7735_SLPOUT ,   DELAY,  //  2: Out of sleep mode, 0 args, w/delay
@@ -146,7 +146,7 @@ Rcmd1[] = {                 // Init for 7735R, part 1 (red or green tab)
     0x0E,
     ST7735_INVOFF , 0      ,  // 13: Don't invert display, no args, no delay
     ST7735_MADCTL , 1      ,  // 14: Memory access control (directions), 1 arg:
-    0xC8,                   //     row addr/col addr, bottom to top refresh
+    0xC0,                   //     row addr/col addr, bottom to top refresh
     ST7735_COLMOD , 1      ,  // 15: set color mode, 1 arg, no delay:
     0x05
 },                 //     16-bit color
@@ -326,8 +326,8 @@ void Adafruit_ST7735::drawPixel(int16_t x, int16_t y, uint16_t color)
 
     _rs = 1;
     _cs = 0;
-
-//    lcdPort.write( color >> 8 );
+    
+    lcdPort.write( color >> 8 );
     lcdPort.write( color );
 
     _cs = 1;
@@ -675,4 +675,5 @@ int Adafruit_ST7735::DrawBitmapFile(const char *Name_BMP)
     
     return 0;
 }
+
 
