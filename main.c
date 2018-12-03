@@ -9,7 +9,7 @@
 #define BLOCK_SIZE 4
 
 typedef enum blocktype{BLANK, BOUNDARY, SNAKE, FOOD} blocktype;
-typedef enum direction{UP, DOWN, RIGHT, LEFT} direction;
+typedef enum direction{NONE, UP, DOWN, RIGHT, LEFT} direction;
 typedef enum status{GAMEON, GAMEOVER}status;
 
 typedef struct snake_blocks{
@@ -22,7 +22,7 @@ Adafruit_ST7735 tft(D11,NC, D13,D10, D5, D4);
 Ticker food_checker;
 
 blocktype board[BOARD_HEIGHT/BLOCK_SIZE][BOARD_WIDTH/BLOCK_SIZE];
-direction curDir = RIGHT; 
+direction curDir = NONE; 
 status gameStatus=GAMEON;
 int snakeSize=3;
 float speed=0.5;
@@ -56,6 +56,7 @@ int main(void){
     pc1.attach(callback(change_dir));
     
     while(1){
+		if(curDir==NONE) continue;
         gameStatus=moveSnake();
         if(gameStatus==GAMEOVER)
             break;
