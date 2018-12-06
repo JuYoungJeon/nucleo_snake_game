@@ -3,25 +3,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-#define BOARD_WIDTH 128
+ #define BOARD_WIDTH 128
 #define BOARD_HEIGHT 128
 #define BLOCK_SIZE 4
-
-typedef enum blocktype{BLANK, BOUNDARY, SNAKE, FOOD} blocktype;
+ typedef enum blocktype{BLANK, BOUNDARY, SNAKE, FOOD} blocktype;
 typedef enum direction{NONE, UP, DOWN, RIGHT, LEFT} direction;
 typedef enum status{GAMEON, GAMEOVER}status;
-
-typedef struct snake_blocks{
+ typedef struct snake_blocks{
     int x, y;
     struct snake_blocks* prev;
 }snake_blocks;
 
+AnalogIn A_x(A0);
+AnalogIn A_y(A1);
 Serial pc1(SERIAL_TX, SERIAL_RX, 115200);
 Adafruit_ST7735 tft(D11,NC, D13,D10, D5, D4);
 Ticker food_checker;
-
-blocktype board[BOARD_HEIGHT/BLOCK_SIZE][BOARD_WIDTH/BLOCK_SIZE];
+ blocktype board[BOARD_HEIGHT/BLOCK_SIZE][BOARD_WIDTH/BLOCK_SIZE];
 direction curDir = NONE; 
 status gameStatus=GAMEON;
 int snakeSize=3;
@@ -30,18 +28,19 @@ snake_blocks* snakeHead, *snakeTail;
 int isFood=0, eaten_stat=0; 
 int newBlockX=BOARD_WIDTH/BLOCK_SIZE, newBlockY=BOARD_HEIGHT/BLOCK_SIZE;
 int score=0;
+float Ax, Ay;
 
 void initConsole();
 void displayConsole();
 void initSnake();
 void removeSnakeBlock();
 void addSnakeBlock();
-void change_dir();
+int change_dir();
 void createFood();
 status moveSnake();
 status checkGameOver();
-
-int main(void){
+ int main(void){
+    
     srand(time(NULL));
     
     tft.initR();
@@ -53,10 +52,14 @@ int main(void){
     food_checker.attach(&createFood, 0.001);
     
     pc1.printf("start\r\n");
-    pc1.attach(callback(change_dir));
     
-    while(1){
-		if(curDir==NONE) continue;
+    while(1){    
+        Ax = A_x.read();
+        Ay = A_y.read(); 
+        
+        change_dir();
+        if(curDir==NONE) continue;
+        
         gameStatus=moveSnake();
         if(gameStatus==GAMEOVER)
             break;
@@ -65,8 +68,7 @@ int main(void){
     }
     pc1.printf("end\r\n");
 }
-
-void createFood(){
+ void createFood(){
     if(!isFood){
         int foodX, foodY;
         foodX=rand()%(BOARD_WIDTH/BLOCK_SIZE-1);
@@ -77,28 +79,32 @@ void createFood(){
         isFood=1;
     }
 }
-
-void change_dir(){
-    char ch;
-    ch=pc1.getc();
-    pc1.putc(ch);
-    
-    if(ch=='a'){
-        if(curDir!=RIGHT)
-            curDir=LEFT;
-    }else if(ch=='d'){
-        if(curDir!=LEFT)
-            curDir=RIGHT;
-    }else if(ch=='w'){
+ int change_dir(){
+            
+    //up
+    if((0.24f < Ax && Ax < 0.76f) && (0.74f < Ay && Ay < 1.01f)){
         if(curDir!=DOWN)
             curDir=UP;
-    }else if(ch=='s'){
+    }    
+    //down
+    else if((0.24f < Ax && Ax < 0.76f) && (-0.01f < Ay && Ay < 0.26f)){
         if(curDir!=UP)
             curDir=DOWN;
-    }
+    }        
+    //left
+    else if((-0.01f < Ax && Ax < 0.26f) && (0.24f < Ay && Ay < 0.76f)){
+        if(curDir!=RIGHT)
+            curDir=LEFT;
+    }        
+    //right
+    else if((0.74f < Ax && Ax < 1.01f) && (0.24f < Ay && Ay < 0.76f)){  
+        if(curDir!=LEFT)
+            curDir=RIGHT;
+    }   
+    
+    return 0;
 }
-
-void initConsole(){
+ void initConsole(){
     for(int i=0; i<BOARD_HEIGHT/4; i++){
         for(int j=0; j<BOARD_WIDTH/4; j++){
             if(i==0||j==0||i==BOARD_HEIGHT/BLOCK_SIZE-1||j==BOARD_WIDTH/BLOCK_SIZE-1)
@@ -110,8 +116,7 @@ void initConsole(){
         }
     }
 }
-
-void initSnake(){
+ void initSnake(){
     snakeHead = (snake_blocks *)malloc(sizeof(snake_blocks));
     snakeHead->x= BOARD_WIDTH/BLOCK_SIZE/2+1; 
     snakeHead->y= BOARD_WIDTH/BLOCK_SIZE/2;
@@ -128,8 +133,7 @@ void initSnake(){
     snakeTail->prev = temp;
     
 }
-
-void addSnakeBlock(){
+ void addSnakeBlock(){
     snake_blocks *temp = (snake_blocks *)malloc(sizeof(snake_blocks));
     if(curDir==RIGHT){
         temp->x=snakeHead->x+1;
@@ -148,14 +152,12 @@ void addSnakeBlock(){
     snakeHead->prev=temp;
     snakeHead=temp;
 }
-
-void removeSnakeBlock(){
+ void removeSnakeBlock(){
     snake_blocks *temp = snakeTail;
     snakeTail = snakeTail->prev;
     free(temp);
 }
-
-void displayConsole(){
+ void displayConsole(){
     for(int i=0; i<BOARD_HEIGHT/4; i++){
         for(int j=0;j<BOARD_WIDTH/4; j++){
             if(board[i][j]==BOUNDARY){
@@ -170,15 +172,13 @@ void displayConsole(){
         }
     }
 }
-
-status checkGameOver(){
+ status checkGameOver(){
     if(board[snakeHead->y][snakeHead->x]==SNAKE||board[snakeHead->y][snakeHead->x]==BOUNDARY){
         return GAMEOVER;
     }
     return GAMEON;
 }
-
-status moveSnake(){
+ status moveSnake(){
     status stat; 
     addSnakeBlock();
     stat=checkGameOver();
